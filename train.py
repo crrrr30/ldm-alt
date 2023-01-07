@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 
 from diffusers.models import AutoencoderKL
 
-from swin_decoder import SwinTransformerBackbone
+from unet import Unet
 from utils import *
 from dataset import get_dataloader
 
@@ -26,21 +26,13 @@ class LitLatentDiffusion(pl.LightningModule):
             self.latent_dim = model_config["latent_dim"]
             self.latent_size = model_config["latent_size"]
             self.max_timesteps = model_config["timesteps"]
-            self.model = SwinTransformerBackbone(
-                input_dim=4,
-                embed_dim=256,
-                depths=[4, 4, 8, 4],
-                num_heads=[16, 16, 16, 16],
-                window_size=[3, 3],
-                stochastic_depth_prob=0.2,
-            )
+            self.model = Unet(64, None, out_dim=4, channels=4, dim_mults=(1, 2, 4))
             self.vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").to(self.device)
-            self.vae.requires_grad = False
             self.save_hyperparameters(ignore=["vae"])
         def forward(self, x):
             return self.model(x)
         def configure_optimizers(self):
-            optimizer = AdamW(self.model.parameters(), lr=5e-4, weight_decay=1e-2)
+            optimizer = AdamW(self.model.parameters(), lr=1e-6, weight_decay=1e-2)
             scheduler = LinearLR(
                 optimizer,
                 start_factor=0.0015,
@@ -64,8 +56,9 @@ class LitLatentDiffusion(pl.LightningModule):
             optimizer.step()
             scheduler.step()
             return loss
-        # def on_save_checkpoint(self, checkpoint):
-            # sample_and_save(self.hyperparams, self.model, self.vae, self.current_epoch, self.latent_size, num=8)
+        def on_save_checkpoint(self, checkpoint):
+            if self.current_epoch % 10 == 0:
+                sample_and_save(self.hyperparams, self.model, self.vae, self.current_epoch, self.latent_size, num=16)
         def validation_step(self, data, idx):
             b = data.shape[0]
             with torch.no_grad():
@@ -81,8 +74,8 @@ def main():
     image_size = 256
     latent_dim = 4
     latent_size = image_size // 8
-    batch_size = 128
-    num_epochs = 200
+    batch_size = 32
+    num_epochs = 850
     half_precision = True
 
 
@@ -100,7 +93,9 @@ def main():
         "lightning_logs/",
     )
 
-    model = LitLatentDiffusion(model_config)
+    # model = LitLatentDiffusion(model_config)
+    model = LitLatentDiffusion.load_from_checkpoint("lightning_logs/lightning_logs/version_5/checkpoints/epoch=150-step=17818.ckpt")
+    model.vae.requires_grad_(False)
     trainer = pl.Trainer(
         default_root_dir=".",
         precision=16 if half_precision else 32,

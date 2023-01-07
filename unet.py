@@ -304,8 +304,10 @@ class Unet(nn.Module):
         return self.final_conv(x)
 
 base = {
-    "dim": 64,
-    "channels": 3,
+    "channels": 4,
+    "out_dim": 4,
     "dim_mults": (1, 2, 4,),
-    "timesteps": 1000
 }
+
+if __name__ == "__main__":
+    model = Unet(64, None, out_dim=4, channels=4, dim_mults=(1, 2, 4))
