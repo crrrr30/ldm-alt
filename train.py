@@ -51,7 +51,7 @@ class LitLatentDiffusion(pl.LightningModule):
             with torch.no_grad():
                 latents = self.vae.encode(data).latent_dist.sample() * 0.18215
             loss = p_losses(to_device(self.hyperparams, self.device), self.model, latents, t)
-            self.log("train_loss", loss)
+            self.log("train_loss", loss, prog_bar=True)
             self.manual_backward(loss)
             optimizer.step()
             scheduler.step()
@@ -59,16 +59,16 @@ class LitLatentDiffusion(pl.LightningModule):
         def on_save_checkpoint(self, checkpoint):
             if self.current_epoch % 10 == 0:
                 sample_and_save(self.hyperparams, self.model, self.vae, self.current_epoch, self.latent_size, num=16)
-        def validation_step(self, data, idx):
-            b = data.shape[0]
-            with torch.no_grad():
-                latents = self.vae.encode(data).latent_dist.sample() * 0.18215
-            losses = []
-            for t in range(self.max_timesteps):
-                t = torch.Tensor([t] * b, device=self.device)
-                loss = p_losses(to_device(self.hyperparams, self.device), self.model, latents, t)
-                losses.append(loss)
-            self.log("val_l1_loss", torch.mean(losses))
+        # def validation_step(self, data, idx):
+        #     b = data.shape[0]
+        #     with torch.no_grad():
+        #         latents = self.vae.encode(data).latent_dist.sample() * 0.18215
+        #     losses = []
+        #     for t in range(self.max_timesteps):
+        #         t = torch.Tensor([t] * b, device=self.device)
+        #         loss = p_losses(to_device(self.hyperparams, self.device), self.model, latents, t)
+        #         losses.append(loss)
+        #     self.log("val_l1_loss", torch.mean(losses))
 
 def main():
     image_size = 256
