@@ -93,8 +93,8 @@ def main():
         "lightning_logs/",
     )
 
-    # model = LitLatentDiffusion(model_config)
-    model = LitLatentDiffusion.load_from_checkpoint("lightning_logs/lightning_logs/version_5/checkpoints/epoch=150-step=17818.ckpt")
+    model = LitLatentDiffusion(model_config)
+    # model = LitLatentDiffusion.load_from_checkpoint("lightning_logs/lightning_logs/version_5/checkpoints/epoch=150-step=17818.ckpt")
     model.vae.requires_grad_(False)
     trainer = pl.Trainer(
         default_root_dir=".",
