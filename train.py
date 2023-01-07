@@ -74,8 +74,8 @@ def main():
     image_size = 256
     latent_dim = 4
     latent_size = image_size // 8
-    batch_size = 32
-    num_epochs = 850
+    batch_size = 64
+    num_epochs = 1000
     half_precision = True
 
 
